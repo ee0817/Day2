@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}首页{% endblock %}
 {% block content %}
-    <h1>🔐 用户管理系统</h1>
+    <h1>🔐 安全用户管理平台</h1>
 
     {% if flash_error %}
         <div class="flash error">{{ flash_error }}</div>
@@ -13,6 +13,7 @@
             <p>角色：<span class="badge {{ role }}">{{ role }}</span></p>
         </div>
         <div class="links">
+            <a href="{{ url_for('profile') }}">👤 个人中心</a>
             <a href="{{ url_for('change_password') }}">🔑 修改密码</a>
             {% if role == 'admin' %}
                 <a href="{{ url_for('admin_panel') }}">👑 管理面板</a>
@@ -25,6 +26,7 @@
         </div>
         <div class="links">
             <a href="{{ url_for('login') }}">🔑 登录</a>
+            <a href="{{ url_for('register') }}" class="link-secondary">📝 注册</a>
         </div>
     {% endif %}
 {% endblock %}

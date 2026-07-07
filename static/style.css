@@ -18,7 +18,7 @@ body {
     padding: 40px;
     border-radius: 12px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    width: 480px;
+    width: 520px;
 }
 
 h1 {
@@ -32,14 +32,32 @@ p {
     margin-bottom: 16px;
 }
 
+/* ── 信息展示 ──────────────────────────────────────────── */
 .info {
     background: #f8f9fa;
     padding: 16px;
     border-radius: 8px;
     margin-bottom: 20px;
-    line-height: 1.8;
 }
 
+.info-row {
+    display: flex;
+    padding: 6px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    width: 80px;
+    color: #888;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+/* ── 徽章 ──────────────────────────────────────────────── */
 .badge {
     display: inline-block;
     padding: 2px 10px;
@@ -48,46 +66,23 @@ p {
     font-weight: 600;
 }
 
-.badge.admin {
-    background: #ffeef0;
-    color: #c0392b;
-}
+.badge.admin { background: #ffeef0; color: #c0392b; }
+.badge.user { background: #e8f4fd; color: #2980b9; }
 
-.badge.user {
-    background: #e8f4fd;
-    color: #2980b9;
-}
-
-.badge.action-login {
-    background: #d4edda;
-    color: #155724;
-}
-
-.badge.action-login_failed {
-    background: #f8d7da;
-    color: #721c24;
-}
-
-.badge.action-logout {
-    background: #d1ecf1;
-    color: #0c5460;
-}
-
-.badge.action-pwd_changed {
-    background: #fff3cd;
-    color: #856404;
-}
-
-.badge.action-pwd_failed {
-    background: #f8d7da;
-    color: #721c24;
-}
+.badge.action-login { background: #d4edda; color: #155724; }
+.badge.action-login_failed,
+.badge.action-pwd_failed { background: #f8d7da; color: #721c24; }
+.badge.action-logout { background: #d1ecf1; color: #0c5460; }
+.badge.action-pwd_changed,
+.badge.action-profile_update,
+.badge.action-admin_edit_user { background: #fff3cd; color: #856404; }
 
 .mono {
     font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
     font-size: 13px;
 }
 
+/* ── Flash 消息 ────────────────────────────────────────── */
 .flash {
     padding: 10px 14px;
     border-radius: 6px;
@@ -95,35 +90,13 @@ p {
     font-size: 14px;
 }
 
-.flash.success {
-    background: #d4edda;
-    border: 1px solid #c3e6cb;
-    color: #155724;
-}
+.flash.success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+.flash.error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+.flash.warning { background: #fff3cd; border: 1px solid #ffeeba; color: #856404; }
+.flash.info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
 
-.flash.error {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
-}
-
-.flash.warning {
-    background: #fff3cd;
-    border: 1px solid #ffeeba;
-    color: #856404;
-}
-
-.flash.info {
-    background: #d1ecf1;
-    border: 1px solid #bee5eb;
-    color: #0c5460;
-}
-
-.links {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
+/* ── 按钮 / 链接 ───────────────────────────────────────── */
+.links { display: flex; flex-direction: column; gap: 10px; }
 
 .links a {
     display: block;
@@ -137,13 +110,45 @@ p {
     transition: background 0.2s;
 }
 
-.links a:hover {
-    background: #3a0ca3;
+.links a:hover { background: #3a0ca3; }
+
+.link-secondary {
+    background: #6c757d !important;
 }
 
-.form-group {
-    margin-bottom: 16px;
+.link-secondary:hover {
+    background: #5a6268 !important;
 }
+
+.action-link {
+    color: #4361ee;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.action-link:hover {
+    text-decoration: underline;
+}
+
+.admin-links {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+    text-align: center;
+}
+
+.admin-links a {
+    color: #4361ee;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.admin-links a:hover {
+    text-decoration: underline;
+}
+
+/* ── 表单 ──────────────────────────────────────────────── */
+.form-group { margin-bottom: 16px; }
 
 .form-group label {
     display: block;
@@ -152,18 +157,27 @@ p {
     font-size: 14px;
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
     width: 100%;
     padding: 10px 12px;
     border: 1.5px solid #ddd;
     border-radius: 6px;
     font-size: 14px;
     transition: border-color 0.2s;
+    background: white;
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus {
     outline: none;
     border-color: #4361ee;
+}
+
+.input-disabled {
+    background: #f0f0f0 !important;
+    color: #888 !important;
+    cursor: not-allowed;
 }
 
 button {
@@ -178,10 +192,9 @@ button {
     transition: background 0.2s;
 }
 
-button:hover {
-    background: #3a0ca3;
-}
+button:hover { background: #3a0ca3; }
 
+/* ── 底部导航 ──────────────────────────────────────────── */
 .footer-links {
     text-align: center;
     margin-top: 20px;
@@ -195,10 +208,15 @@ button:hover {
     font-size: 14px;
 }
 
-.footer-links a:hover {
-    text-decoration: underline;
+.footer-links a:hover { text-decoration: underline; }
+
+.sep {
+    color: #ddd;
+    margin: 0 6px;
+    font-size: 14px;
 }
 
+/* ── 表格 ──────────────────────────────────────────────── */
 table {
     width: 100%;
     border-collapse: collapse;

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}注册{% endblock %}
+{% block content %}
+    <h1>📝 用户注册</h1>
+
+    <form method="POST" action="/register">
+        <div class="form-group">
+            <label>用户名：</label>
+            <input type="text" name="username" placeholder="2~20位字母/数字/下划线" required>
+        </div>
+        <div class="form-group">
+            <label>密　码：</label>
+            <input type="password" name="password" placeholder="至少8位，含大小写字母和数字" required>
+        </div>
+        <div class="form-group">
+            <label>邮　箱：</label>
+            <input type="email" name="email" placeholder="your@email.com" required>
+        </div>
+        <button type="submit">注 册</button>
+    </form>
+
+    {% if errors %}
+        {% for e in errors %}
+            <div class="flash error">{{ e }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="footer-links">
+        <a href="{{ url_for('login') }}">← 已有账号？去登录</a>
+    </div>
+{% endblock %}

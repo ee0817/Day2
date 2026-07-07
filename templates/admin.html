@@ -9,22 +9,26 @@
             <th>ID</th>
             <th>用户名</th>
             <th>角色</th>
+            <th>邮箱</th>
+            <th>余额</th>
             <th>注册时间</th>
+            <th>操作</th>
         </tr>
         {% for u in users %}
         <tr>
             <td>{{ u.id }}</td>
             <td>{{ u.username }}</td>
             <td><span class="badge {{ u.role }}">{{ u.role }}</span></td>
-            <td>{{ u.created_at }}</td>
+            <td>{{ u.email }}</td>
+            <td>¥{{ '%.2f'|format(u.balance) }}</td>
+            <td class="mono">{{ u.created_at }}</td>
+            <td><a href="{{ url_for('admin_user_edit', user_id=u.id) }}" class="action-link">编辑</a></td>
         </tr>
         {% endfor %}
     </table>
 
-    <div style="margin-top: 24px; border-top: 1px solid #eee; padding-top: 16px; text-align: center;">
-        <a href="{{ url_for('admin_logs') }}" style="color: #4361ee; text-decoration: none; font-size: 14px;">
-            📋 查看审计日志（共 {{ log_count }} 条）
-        </a>
+    <div class="admin-links">
+        <a href="{{ url_for('admin_logs') }}">📋 审计日志（{{ log_count }} 条）</a>
     </div>
 
     <div class="footer-links">
