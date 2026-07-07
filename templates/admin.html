@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}管理面板{% endblock %}
+{% block content %}
+    <h1>👑 管理面板</h1>
+    <p>欢迎，<strong>{{ session.username }}</strong>！ 共 {{ total }} 个用户</p>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>用户名</th>
+            <th>角色</th>
+            <th>注册时间</th>
+        </tr>
+        {% for u in users %}
+        <tr>
+            <td>{{ u.id }}</td>
+            <td>{{ u.username }}</td>
+            <td><span class="badge {{ u.role }}">{{ u.role }}</span></td>
+            <td>{{ u.created_at }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <div style="margin-top: 24px; border-top: 1px solid #eee; padding-top: 16px; text-align: center;">
+        <a href="{{ url_for('admin_logs') }}" style="color: #4361ee; text-decoration: none; font-size: 14px;">
+            📋 查看审计日志（共 {{ log_count }} 条）
+        </a>
+    </div>
+
+    <div class="footer-links">
+        <a href="{{ url_for('index') }}">← 返回首页</a>
+    </div>
+{% endblock %}

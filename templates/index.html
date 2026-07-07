@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}首页{% endblock %}
+{% block content %}
+    <h1>🔐 用户管理系统</h1>
+
+    {% if flash_error %}
+        <div class="flash error">{{ flash_error }}</div>
+    {% endif %}
+
+    {% if username %}
+        <div class="info">
+            <p>👋 欢迎回来，<strong>{{ username }}</strong></p>
+            <p>角色：<span class="badge {{ role }}">{{ role }}</span></p>
+        </div>
+        <div class="links">
+            <a href="{{ url_for('change_password') }}">🔑 修改密码</a>
+            {% if role == 'admin' %}
+                <a href="{{ url_for('admin_panel') }}">👑 管理面板</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}">🚪 退出登录</a>
+        </div>
+    {% else %}
+        <div class="info">
+            <p>当前未登录</p>
+        </div>
+        <div class="links">
+            <a href="{{ url_for('login') }}">🔑 登录</a>
+        </div>
+    {% endif %}
+{% endblock %}
