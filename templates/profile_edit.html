@@ -4,6 +4,7 @@
     <h1>✏️ 编辑个人信息</h1>
 
     <form method="POST" action="/profile/edit">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group">
             <label>用户名：</label>
             <input type="text" value="{{ user.username }}" disabled class="input-disabled">

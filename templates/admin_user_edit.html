@@ -5,6 +5,7 @@
     <p>用户名：<strong>{{ user.username }}</strong></p>
 
     <form method="POST" action="/admin/user/{{ user.id }}/edit">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group">
             <label>邮　箱：</label>
             <input type="email" name="email" value="{{ user.email }}" required>

@@ -18,7 +18,10 @@
             {% if role == 'admin' %}
                 <a href="{{ url_for('admin_panel') }}">👑 管理面板</a>
             {% endif %}
-            <a href="{{ url_for('logout') }}">🚪 退出登录</a>
+            <form action="{{ url_for('logout') }}" method="POST" style="margin-top: 10px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-danger">🚪 退出登录</button>
+            </form>
         </div>
     {% else %}
         <div class="info">

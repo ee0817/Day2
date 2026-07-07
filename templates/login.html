@@ -4,6 +4,7 @@
     <h1>🔑 用户登录</h1>
 
     <form method="POST" action="/login">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group">
             <label>用户名：</label>
             <input type="text" name="username" placeholder="输入用户名" required>

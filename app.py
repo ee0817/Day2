@@ -1,15 +1,27 @@
-"""🔐 安全用户管理平台 - Flask 全功能版"""
+"""🔐 安全用户管理平台 - Flask 全功能安全加固版"""
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-import sqlite3
-import bcrypt
-from functools import wraps
-from datetime import datetime
+import os
 import re
+import time
+import secrets
+import sqlite3
+from functools import wraps
 
+import bcrypt
+from flask import (
+    Flask, render_template, request, redirect,
+    url_for, session, flash, abort
+)
+
+# ── 应用初始化 ──────────────────────────────────────────
 app = Flask(__name__)
-app.secret_key = 'benben-secret-key-2026!!'
-app.config['PERMANENT_SESSION_LIFETIME'] = 1800
+app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+app.config.update(
+    PERMANENT_SESSION_LIFETIME=1800,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=False,  # HTTPS 时改为 True
+)
 
 
 # ── 数据库 ───────────────────────────────────────────────
@@ -47,8 +59,8 @@ def init_db():
     c.execute("SELECT COUNT(*) FROM users")
     if c.fetchone()[0] == 0:
         pw = bcrypt.hashpw(b'admin123', bcrypt.gensalt()).decode()
-        c.execute("INSERT INTO users (username, password_hash, role, email) VALUES (?, ?, ?, ?)",
-                  ('admin', pw, 'admin', 'admin@example.com'))
+        c.execute("INSERT INTO users (username, password_hash, role, email, balance) VALUES (?, ?, ?, ?, ?)",
+                  ('admin', pw, 'admin', 'admin@example.com', 9999.99))
         c.execute("INSERT INTO users (username, password_hash, role, email, balance) VALUES (?, ?, ?, ?, ?)",
                   ('user1', bcrypt.hashpw(b'password1', bcrypt.gensalt()).decode(), 'user', 'user1@example.com', 100.0))
         c.execute("INSERT INTO users (username, password_hash, role, email, balance) VALUES (?, ?, ?, ?, ?)",
@@ -96,11 +108,47 @@ def validate_password(password):
     return True
 
 
+# ── 登录频率限制 ────────────────────────────────────────
+LOGIN_ATTEMPTS = {}
+
+def is_rate_limited(ip, max_attempts=5, window=60):
+    now = time.time()
+    if ip not in LOGIN_ATTEMPTS:
+        LOGIN_ATTEMPTS[ip] = []
+    LOGIN_ATTEMPTS[ip] = [t for t in LOGIN_ATTEMPTS[ip] if now - t < window]
+    if len(LOGIN_ATTEMPTS[ip]) >= max_attempts:
+        return True
+    LOGIN_ATTEMPTS[ip].append(now)
+    return False
+
+
+# ── CSRF 防护 ──────────────────────────────────────────
+def generate_csrf_token():
+    if 'csrf_token' not in session:
+        session['csrf_token'] = secrets.token_hex(16)
+    return session['csrf_token']
+
+
+def csrf_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if request.method == 'POST':
+            token = request.form.get('csrf_token')
+            if not token or token != session.get('csrf_token'):
+                abort(403, description='CSRF 验证失败')
+        return f(*args, **kwargs)
+    return decorated
+
+
+app.jinja_env.globals['csrf_token'] = generate_csrf_token
+
+
 # ── 安全响应头 ──────────────────────────────────────────
 @app.after_request
 def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     return response
 
 
@@ -143,7 +191,7 @@ def admin_required(f):
 
 
 def get_user_info(username):
-    """获取用户公开信息"""
+    """获取用户公开信息（不含密码）"""
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT id, username, role, email, phone, balance, created_at FROM users WHERE username = ?", (username,))
@@ -167,6 +215,12 @@ def login():
         return redirect(url_for('index'))
 
     if request.method == 'POST':
+        ip = request.remote_addr or 'unknown'
+        if is_rate_limited(ip):
+            log_action('RATE_LIMITED', f'IP {ip} 触发登录频率限制')
+            flash('❌ 登录尝试过于频繁，请 60 秒后再试', 'error')
+            return render_template('login.html')
+
         username = request.form['username']
         password = request.form['password']
 
@@ -181,6 +235,8 @@ def login():
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['role'] = user['role']
+            # 登录成功清除限流记录
+            LOGIN_ATTEMPTS.pop(ip, None)
             log_action('LOGIN', f'用户 {username} 登录成功')
             flash(f'👋 欢迎回来，{user["username"]}！', 'success')
             return redirect(url_for('index'))
@@ -191,8 +247,9 @@ def login():
     return render_template('login.html')
 
 
-# ── 退出 ─────────────────────────────────────────────────
-@app.route('/logout')
+# ── 退出（POST 方式防 CSRF 强制登出）─
+@app.route('/logout', methods=['POST'])
+@csrf_required
 def logout():
     username = session.get('username', '')
     if username:
@@ -258,6 +315,7 @@ def profile():
 
 @app.route('/profile/edit', methods=['GET', 'POST'])
 @login_required
+@csrf_required
 def profile_edit():
     if request.method == 'POST':
         email = sanitize_email(request.form.get('email', ''))
@@ -290,6 +348,7 @@ def profile_edit():
 # ── 修改密码 ─────────────────────────────────────────────
 @app.route('/change-password', methods=['GET', 'POST'])
 @login_required
+@csrf_required
 def change_password():
     if request.method == 'POST':
         old_pw = request.form['old_password']
@@ -343,6 +402,7 @@ def admin_panel():
 
 @app.route('/admin/user/<int:user_id>/edit', methods=['GET', 'POST'])
 @admin_required
+@csrf_required
 def admin_user_edit(user_id):
     conn = get_db()
     c = conn.cursor()
@@ -394,4 +454,5 @@ def admin_logs():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    debug = os.environ.get('FLASK_ENV') == 'development'
+    app.run(debug=debug, host='127.0.0.1', port=5000)

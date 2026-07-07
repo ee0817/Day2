@@ -71,11 +71,13 @@ p {
 
 .badge.action-login { background: #d4edda; color: #155724; }
 .badge.action-login_failed,
-.badge.action-pwd_failed { background: #f8d7da; color: #721c24; }
+.badge.action-pwd_failed,
+.badge.action-rate_limited { background: #f8d7da; color: #721c24; }
 .badge.action-logout { background: #d1ecf1; color: #0c5460; }
 .badge.action-pwd_changed,
 .badge.action-profile_update,
-.badge.action-admin_edit_user { background: #fff3cd; color: #856404; }
+.badge.action-admin_edit_user,
+.badge.action-register { background: #fff3cd; color: #856404; }
 
 .mono {
     font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
@@ -118,6 +120,23 @@ p {
 
 .link-secondary:hover {
     background: #5a6268 !important;
+}
+
+.btn-danger {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-danger:hover {
+    background: #c0392b;
 }
 
 .action-link {
@@ -180,7 +199,7 @@ p {
     cursor: not-allowed;
 }
 
-button {
+button[type="submit"]:not(.btn-danger) {
     width: 100%;
     padding: 10px;
     background: #4361ee;
@@ -192,7 +211,9 @@ button {
     transition: background 0.2s;
 }
 
-button:hover { background: #3a0ca3; }
+button[type="submit"]:not(.btn-danger):hover {
+    background: #3a0ca3;
+}
 
 /* ── 底部导航 ──────────────────────────────────────────── */
 .footer-links {
