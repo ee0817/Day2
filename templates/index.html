@@ -1,35 +1,64 @@
 {% extends "base.html" %}
 {% block title %}首页{% endblock %}
 {% block content %}
-    <h1>🔐 安全用户管理平台</h1>
+    {% if user %}
+        <div class="card">
+            <h2 class="card-title">欢迎回来，{{ user.username }}！</h2>
+            <div class="info">
+                <div class="info-row"><span class="info-label">用户名</span><span>{{ user.username }}</span></div>
+                <div class="info-row"><span class="info-label">角色</span><span class="badge {{ user.role }}">{{ user.role }}</span></div>
+                <div class="info-row"><span class="info-label">邮箱</span><span>{{ user.email or '未设置' }}</span></div>
+                <div class="info-row"><span class="info-label">手机</span><span>{{ user.phone or '未设置' }}</span></div>
+                <div class="info-row"><span class="info-label">余额</span><span>¥{{ '%.2f'|format(user.balance) }}</span></div>
+                <div class="info-row"><span class="info-label">注册时间</span><span>{{ user.created_at }}</span></div>
+            </div>
 
-    {% if flash_error %}
-        <div class="flash error">{{ flash_error }}</div>
-    {% endif %}
+            <!-- 搜索功能 -->
+            <div class="search-section">
+                <h3 style="margin-bottom: 12px; font-size: 16px; color: #333;">🔍 搜索用户</h3>
+                <form method="GET" action="/">
+                    <div class="search-box">
+                        <input type="text" name="keyword" placeholder="输入用户名或邮箱搜索..." value="{{ keyword or '' }}" class="search-input">
+                        <button type="submit" class="btn btn-primary" style="width: auto; padding: 10px 20px;">搜索</button>
+                    </div>
+                </form>
 
-    {% if username %}
-        <div class="info">
-            <p>👋 欢迎回来，<strong>{{ username }}</strong></p>
-            <p>角色：<span class="badge {{ role }}">{{ role }}</span></p>
-        </div>
-        <div class="links">
-            <a href="{{ url_for('profile') }}">👤 个人中心</a>
-            <a href="{{ url_for('change_password') }}">🔑 修改密码</a>
-            {% if role == 'admin' %}
-                <a href="{{ url_for('admin_panel') }}">👑 管理面板</a>
-            {% endif %}
-            <form action="{{ url_for('logout') }}" method="POST" style="margin-top: 10px;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn-danger">🚪 退出登录</button>
-            </form>
+                {% if keyword %}
+                    <div class="search-results" style="margin-top: 16px;">
+                        {% if results %}
+                            <p style="font-size: 13px; color: #888; margin-bottom: 8px;">找到 {{ results|length }} 条结果</p>
+                            <table class="info-table">
+                                <tr><th>ID</th><th>用户名</th><th>邮箱</th><th>手机</th></tr>
+                                {% for row in results %}
+                                <tr>
+                                    <td>{{ row[0] }}</td>
+                                    <td>{{ row[1] }}</td>
+                                    <td>{{ row[2] }}</td>
+                                    <td>{{ row[3] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        {% else %}
+                            <p class="flash error" style="text-align: center;">无搜索结果</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="action-bar" style="margin-top: 20px;">
+                <form action="/logout" method="POST" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">退出登录</button>
+                </form>
+            </div>
         </div>
     {% else %}
-        <div class="info">
-            <p>当前未登录</p>
-        </div>
-        <div class="links">
-            <a href="{{ url_for('login') }}">🔑 登录</a>
-            <a href="{{ url_for('register') }}" class="link-secondary">📝 注册</a>
+        <div class="card">
+            <h2 class="card-title">欢迎来到用户管理系统</h2>
+            <p class="card-desc">请先登录以查看您的个人信息</p>
+            <div class="action-bar">
+                <a href="/login" class="btn btn-primary">前往登录</a>
+            </div>
         </div>
     {% endif %}
 {% endblock %}

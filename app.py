@@ -1,5 +1,4 @@
-"""🔐 安全用户管理平台 - Flask 全功能安全加固版"""
-
+"""简易用户信息管理平台 - 安全加固版"""
 import os
 import re
 import time
@@ -20,18 +19,19 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=1800,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
-    SESSION_COOKIE_SECURE=False,  # HTTPS 时改为 True
+    SESSION_COOKIE_SECURE=False,
 )
 
 
 # ── 数据库 ───────────────────────────────────────────────
 def get_db():
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect('data/users.db')
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def init_db():
+    os.makedirs("data", exist_ok=True)
     conn = get_db()
     c = conn.cursor()
     c.execute('''
@@ -59,12 +59,11 @@ def init_db():
     c.execute("SELECT COUNT(*) FROM users")
     if c.fetchone()[0] == 0:
         pw = bcrypt.hashpw(b'admin123', bcrypt.gensalt()).decode()
-        c.execute("INSERT INTO users (username, password_hash, role, email, balance) VALUES (?, ?, ?, ?, ?)",
-                  ('admin', pw, 'admin', 'admin@example.com', 9999.99))
-        c.execute("INSERT INTO users (username, password_hash, role, email, balance) VALUES (?, ?, ?, ?, ?)",
-                  ('user1', bcrypt.hashpw(b'password1', bcrypt.gensalt()).decode(), 'user', 'user1@example.com', 100.0))
-        c.execute("INSERT INTO users (username, password_hash, role, email, balance) VALUES (?, ?, ?, ?, ?)",
-                  ('test', bcrypt.hashpw(b'Test@12345', bcrypt.gensalt()).decode(), 'user', 'test@example.com', 50.0))
+        c.execute("INSERT INTO users (username, password_hash, role, email, phone, balance) VALUES (?, ?, ?, ?, ?, ?)",
+                  ('admin', pw, 'admin', 'admin@example.com', '13800138000', 99999))
+        pw = bcrypt.hashpw(b'alice2025', bcrypt.gensalt()).decode()
+        c.execute("INSERT INTO users (username, password_hash, role, email, phone, balance) VALUES (?, ?, ?, ?, ?, ?)",
+                  ('alice', pw, 'user', 'alice@example.com', '13900139001', 100))
         conn.commit()
     conn.close()
 
@@ -177,21 +176,7 @@ def login_required(f):
     return decorated
 
 
-def admin_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if 'username' not in session:
-            flash('请先登录', 'warning')
-            return redirect(url_for('login'))
-        if session.get('role') != 'admin':
-            return render_template('index.html', username=session['username'], role=session['role'],
-                                   flash_error='⚠️ 权限不足，仅管理员可访问'), 403
-        return f(*args, **kwargs)
-    return decorated
-
-
 def get_user_info(username):
-    """获取用户公开信息（不含密码）"""
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT id, username, role, email, phone, balance, created_at FROM users WHERE username = ?", (username,))
@@ -200,11 +185,28 @@ def get_user_info(username):
     return dict(user) if user else None
 
 
-# ── 路由 ─────────────────────────────────────────────────
+# ── 首页 ──────────────────────────────────────────────
 @app.route('/')
 def index():
     if 'username' in session:
-        return render_template('index.html', username=session['username'], role=session['role'])
+        user = get_user_info(session['username'])
+        if not user:
+            session.clear()
+            return redirect(url_for('login'))
+
+        # 搜索功能（已修复：参数化查询）
+        keyword = request.args.get('keyword', '')
+        results = None
+        if keyword:
+            conn = get_db()
+            c = conn.cursor()
+            sql = "SELECT id, username, email, phone FROM users WHERE username LIKE ? OR email LIKE ?"
+            print(f"[SQL] {sql} | keyword=%{keyword}%")
+            c.execute(sql, (f'%{keyword}%', f'%{keyword}%'))
+            results = c.fetchall()
+            conn.close()
+
+        return render_template('index.html', user=user, results=results, keyword=keyword)
     return render_template('index.html')
 
 
@@ -235,7 +237,6 @@ def login():
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['role'] = user['role']
-            # 登录成功清除限流记录
             LOGIN_ATTEMPTS.pop(ip, None)
             log_action('LOGIN', f'用户 {username} 登录成功')
             flash(f'👋 欢迎回来，{user["username"]}！', 'success')
@@ -270,6 +271,7 @@ def register():
         username = sanitize_username(request.form.get('username', ''))
         password = request.form.get('password', '')
         email = sanitize_email(request.form.get('email', ''))
+        phone = sanitize_phone(request.form.get('phone', ''))
 
         errors = []
         if not username:
@@ -291,8 +293,8 @@ def register():
             return render_template('register.html', errors=['用户名已存在'])
 
         pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-        c.execute("INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)",
-                  (username, pw_hash, email))
+        c.execute("INSERT INTO users (username, password_hash, email, phone) VALUES (?, ?, ?, ?)",
+                  (username, pw_hash, email, phone))
         conn.commit()
         conn.close()
         log_action('REGISTER', f'新用户注册: {username}')
@@ -302,155 +304,10 @@ def register():
     return render_template('register.html')
 
 
-# ── 个人中心 ─────────────────────────────────────────────
-@app.route('/profile')
-@login_required
-def profile():
-    user = get_user_info(session['username'])
-    if not user:
-        session.clear()
-        return redirect(url_for('login'))
-    return render_template('profile.html', user=user)
-
-
-@app.route('/profile/edit', methods=['GET', 'POST'])
-@login_required
-@csrf_required
-def profile_edit():
-    if request.method == 'POST':
-        email = sanitize_email(request.form.get('email', ''))
-        phone = sanitize_phone(request.form.get('phone', ''))
-
-        errors = []
-        if not email:
-            errors.append('邮箱格式无效')
-        if not phone:
-            errors.append('手机号格式无效（11位大陆手机号）')
-
-        if errors:
-            user = get_user_info(session['username'])
-            return render_template('profile_edit.html', user=user, errors=errors)
-
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("UPDATE users SET email = ?, phone = ? WHERE id = ?",
-                  (email, phone, session['user_id']))
-        conn.commit()
-        conn.close()
-        log_action('PROFILE_UPDATE', f'{session["username"]} 更新个人信息')
-        flash('✅ 个人信息已更新', 'success')
-        return redirect(url_for('profile'))
-
-    user = get_user_info(session['username'])
-    return render_template('profile_edit.html', user=user)
-
-
-# ── 修改密码 ─────────────────────────────────────────────
-@app.route('/change-password', methods=['GET', 'POST'])
-@login_required
-@csrf_required
-def change_password():
-    if request.method == 'POST':
-        old_pw = request.form['old_password']
-        new_pw = request.form['new_password']
-
-        if len(new_pw) < 6:
-            flash('❌ 新密码至少6位', 'error')
-            return render_template('change_password.html')
-
-        if old_pw == new_pw:
-            flash('❌ 新密码不能与原密码相同', 'error')
-            return render_template('change_password.html')
-
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("SELECT * FROM users WHERE id = ?", (session['user_id'],))
-        user = c.fetchone()
-
-        if not user or not bcrypt.checkpw(old_pw.encode(), user['password_hash'].encode()):
-            conn.close()
-            log_action('PWD_FAILED', f'{session["username"]} 修改密码-原密码错误')
-            flash('❌ 原密码错误', 'error')
-            return render_template('change_password.html')
-
-        new_hash = bcrypt.hashpw(new_pw.encode(), bcrypt.gensalt()).decode()
-        c.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, session['user_id']))
-        conn.commit()
-        conn.close()
-        log_action('PWD_CHANGED', f'{session["username"]} 修改密码成功')
-        flash('✅ 密码修改成功', 'success')
-
-    return render_template('change_password.html')
-
-
-# ── 管理面板 ─────────────────────────────────────────────
-@app.route('/admin')
-@admin_required
-def admin_panel():
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT id, username, role, email, phone, balance, created_at FROM users ORDER BY id")
-    users = c.fetchall()
-    c.execute("SELECT COUNT(*) FROM users")
-    total_users = c.fetchone()[0]
-    c.execute("SELECT COUNT(*) FROM audit_logs")
-    log_count = c.fetchone()[0]
-    conn.close()
-    return render_template('admin.html', users=[dict(u) for u in users],
-                           total=total_users, log_count=log_count)
-
-
-@app.route('/admin/user/<int:user_id>/edit', methods=['GET', 'POST'])
-@admin_required
-@csrf_required
-def admin_user_edit(user_id):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE id = ?", (user_id,))
-    user = c.fetchone()
-
-    if not user:
-        conn.close()
-        flash('❌ 用户不存在', 'error')
-        return redirect(url_for('admin_panel'))
-
-    if request.method == 'POST':
-        email = sanitize_email(request.form.get('email', ''))
-        phone = sanitize_phone(request.form.get('phone', ''))
-        try:
-            balance = float(request.form.get('balance', 0))
-        except ValueError:
-            balance = 0.0
-        role = request.form.get('role', 'user')
-
-        if role not in ('admin', 'user'):
-            role = 'user'
-        if not email:
-            flash('❌ 邮箱格式无效', 'error')
-            return render_template('admin_user_edit.html', user=dict(user))
-
-        c.execute("UPDATE users SET email = ?, phone = ?, balance = ?, role = ? WHERE id = ?",
-                  (email, phone, balance, role, user_id))
-        conn.commit()
-        log_action('ADMIN_EDIT_USER', f'管理员 {session["username"]} 编辑用户 {user["username"]}')
-        conn.close()
-        flash(f'✅ 已更新用户 {user["username"]} 的信息', 'success')
-        return redirect(url_for('admin_panel'))
-
-    conn.close()
-    return render_template('admin_user_edit.html', user=dict(user))
-
-
-# ── 审计日志 ─────────────────────────────────────────────
-@app.route('/admin/logs')
-@admin_required
-def admin_logs():
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT id, username, action, detail, ip, created_at FROM audit_logs ORDER BY id DESC LIMIT 100")
-    logs = c.fetchall()
-    conn.close()
-    return render_template('admin_logs.html', logs=logs)
+# ── 登出（GET 方式，兼容点击退出链接）─
+@app.route('/logout-page')
+def logout_page():
+    return render_template('logout.html')
 
 
 if __name__ == '__main__':

@@ -1,32 +1,38 @@
 {% extends "base.html" %}
 {% block title %}注册{% endblock %}
 {% block content %}
-    <h1>📝 用户注册</h1>
+    <div class="card">
+        <h2 class="card-title">用户注册</h2>
 
-    <form method="POST" action="/register">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="form-group">
-            <label>用户名：</label>
-            <input type="text" name="username" placeholder="2~20位字母/数字/下划线" required>
-        </div>
-        <div class="form-group">
-            <label>密　码：</label>
-            <input type="password" name="password" placeholder="至少8位，含大小写字母和数字" required>
-        </div>
-        <div class="form-group">
-            <label>邮　箱：</label>
-            <input type="email" name="email" placeholder="your@email.com" required>
-        </div>
-        <button type="submit">注 册</button>
-    </form>
+        {% if errors %}
+            {% for e in errors %}
+                <div class="flash error">{{ e }}</div>
+            {% endfor %}
+        {% endif %}
 
-    {% if errors %}
-        {% for e in errors %}
-            <div class="flash error">{{ e }}</div>
-        {% endfor %}
-    {% endif %}
+        <form method="POST" action="/register">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" placeholder="2~20位字母/数字/下划线" required>
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="至少8位，含大小写字母和数字" required>
+            </div>
+            <div class="form-group">
+                <label for="email">邮箱</label>
+                <input type="email" id="email" name="email" placeholder="your@email.com" required>
+            </div>
+            <div class="form-group">
+                <label for="phone">手机号</label>
+                <input type="text" id="phone" name="phone" placeholder="11位大陆手机号">
+            </div>
+            <button type="submit" class="btn btn-primary">注册</button>
+        </form>
 
-    <div class="footer-links">
-        <a href="{{ url_for('login') }}">← 已有账号？去登录</a>
+        <div class="footer-links" style="margin-top: 16px;">
+            <a href="/login">← 已有账号？去登录</a>
+        </div>
     </div>
 {% endblock %}

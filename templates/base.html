@@ -3,11 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}首页{% endblock %} - 用户管理</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>{% block title %}用户管理系统{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="container">
+    <nav class="navbar">
+        <div class="nav-brand">用户管理系统</div>
+        <div class="nav-menu">
+            {% if session.get('username') %}
+                <span class="nav-greeting">欢迎，{{ session['username'] }}</span>
+                <a href="/logout-page" class="nav-link">退出</a>
+            {% else %}
+                <a href="/login" class="nav-link">登录</a>
+                <a href="/register" class="nav-link">注册</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, msg in messages %}
@@ -17,6 +30,6 @@
         {% endwith %}
 
         {% block content %}{% endblock %}
-    </div>
+    </main>
 </body>
 </html>
