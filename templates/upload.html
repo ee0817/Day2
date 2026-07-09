@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}上传头像{% endblock %}
+{% block content %}
+    <div class="card">
+        <h2 class="card-title">📷 上传头像</h2>
+        <form method="POST" action="/upload" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="file">选择文件</label>
+                <input type="file" id="file" name="file" required>
+            </div>
+            <button type="submit" class="btn btn-primary">上传</button>
+        </form>
+        <p style="margin-top:12px;font-size:12px;color:#999;text-align:center;">
+            支持格式：PNG / JPG / GIF / BMP / WebP（最大 2MB）
+        </p>
+        {% if uploaded %}
+            <div style="margin-top:24px;padding-top:20px;border-top:1px solid #eee;text-align:center;">
+                <h3 style="margin-bottom:12px;color:#333;">上传成功！</h3>
+                <div style="margin-bottom:12px;">
+                    <img src="{{ file_url }}" alt="头像预览" style="max-width:200px;max-height:200px;border-radius:8px;border:2px solid #eee;padding:4px;">
+                </div>
+                <p style="font-size:13px;color:#888;word-break:break-all;">
+                    文件链接：<a href="{{ file_url }}" target="_blank">{{ file_url }}</a>
+                </p>
+            </div>
+        {% endif %}
+        <div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px solid #eee;">
+            <a href="/" style="color:#667eea;text-decoration:none;font-size:14px;">← 返回首页</a>
+        </div>
+    </div>
+{% endblock %}

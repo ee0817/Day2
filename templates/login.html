@@ -3,7 +3,6 @@
 {% block content %}
     <div class="card">
         <h2 class="card-title">用户登录</h2>
-
         <form method="POST" action="/login">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
@@ -16,7 +15,6 @@
             </div>
             <button type="submit" class="btn btn-primary">登录</button>
         </form>
-
         <div class="footer-links">
             <a href="/">← 返回首页</a>
             <span class="sep">|</span>

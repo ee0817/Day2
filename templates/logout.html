@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block title %}退出登录{% endblock %}
 {% block content %}
-    <div class="card" style="text-align: center;">
+    <div class="card" style="text-align:center;">
         <h2 class="card-title">确认退出</h2>
-        <p style="margin-bottom: 20px; color: #666;">您确定要退出登录吗？</p>
-        <form action="/logout" method="POST" style="display: inline-block;">
+        <p style="margin-bottom:20px;color:#666;">您确定要退出登录吗？</p>
+        <form action="/logout" method="POST" style="display:inline-block;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-danger" style="width: auto;">确认退出</button>
+            <button type="submit" class="btn btn-danger" style="width:auto;">确认退出</button>
         </form>
-        <a href="/" class="btn btn-primary" style="width: auto; display: inline-block; margin-left: 10px; text-decoration: none;">取消</a>
+        <a href="/" style="display:inline-block;padding:10px 24px;background:#667eea;color:#fff;text-decoration:none;border-radius:6px;margin-left:10px;">取消</a>
     </div>
 {% endblock %}
