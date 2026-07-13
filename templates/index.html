@@ -15,9 +15,16 @@
 
             <!-- 快捷入口 -->
             <div class="quick-links" style="text-align:center;margin-bottom:16px;">
-                <a href="/profile?user_id={{ user.id }}" class="quick-link-btn" style="display:inline-block;padding:10px 24px;background:#667eea;color:#fff;text-decoration:none;border-radius:6px;margin:4px;">👤 个人中心</a>
-                <a href="/upload" class="quick-link-btn" style="display:inline-block;padding:10px 24px;background:#667eea;color:#fff;text-decoration:none;border-radius:6px;margin:4px;">📷 上传头像</a>
+                <a href="/profile?user_id={{ user.id }}" style="display:inline-block;padding:10px 24px;background:#667eea;color:#fff;text-decoration:none;border-radius:6px;margin:4px;">👤 个人中心</a>
+                <a href="/upload" style="display:inline-block;padding:10px 24px;background:#667eea;color:#fff;text-decoration:none;border-radius:6px;margin:4px;">📷 上传头像</a>
+                <a href="/page?name=help" style="display:inline-block;padding:10px 24px;background:#6c757d;color:#fff;text-decoration:none;border-radius:6px;margin:4px;">📖 帮助中心</a>
             </div>
+
+            {% if page_content %}
+                <div class="page-content" style="margin-top:20px;padding-top:20px;border-top:1px solid #eee;">
+                    {{ page_content | safe }}
+                </div>
+            {% endif %}
 
             <!-- 搜索功能 -->
             <div class="search-section">
@@ -65,6 +72,14 @@
             <div class="action-bar">
                 <a href="/login" class="btn btn-primary">前往登录</a>
             </div>
+            <div style="text-align:center;margin-top:12px;">
+                <a href="/page?name=help" style="display:inline-block;padding:10px 24px;background:#6c757d;color:#fff;text-decoration:none;border-radius:6px;">📖 帮助中心</a>
+            </div>
+            {% if page_content %}
+                <div class="page-content" style="margin-top:20px;padding-top:20px;border-top:1px solid #eee;">
+                    {{ page_content | safe }}
+                </div>
+            {% endif %}
         </div>
     {% endif %}
 {% endblock %}

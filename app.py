@@ -368,6 +368,35 @@ def recharge():
     return redirect(url_for('profile', user_id=user_id))
 
 
+# ── 动态页面加载 ─────────────────────────────────────────
+@app.route('/page')
+def dynamic_page():
+    name = request.args.get('name', '')
+    if not name:
+        page_content = '请指定页面名称'
+    else:
+        file_path = os.path.join('pages', name)
+        if os.path.isfile(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                page_content = f.read()
+        else:
+            file_path_html = os.path.join('pages', name + '.html')
+            if os.path.isfile(file_path_html):
+                with open(file_path_html, 'r', encoding='utf-8') as f:
+                    page_content = f.read()
+            else:
+                page_content = '页面不存在'
+
+    if 'username' in session:
+        user = get_user_info(session['username'])
+        if not user:
+            session.clear()
+            return redirect(url_for('login'))
+        return render_template('index.html', user=user, page_content=page_content)
+
+    return render_template('index.html', page_content=page_content)
+
+
 # ── 登出确认页 ──────────────────────────────────────────
 @app.route('/logout-page')
 def logout_page():
