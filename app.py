@@ -368,6 +368,32 @@ def recharge():
     return redirect(url_for('profile', user_id=user_id))
 
 
+# ── 修改密码 ─────────────────────────────────────────────
+@app.route('/change-password', methods=['POST'])
+def change_password():
+    if 'username' not in session:
+        flash('请先登录', 'warning')
+        return redirect(url_for('login'))
+
+    username = request.form.get('username', '')
+    new_password = request.form.get('new_password', '')
+
+    if not username or not new_password:
+        flash('参数错误', 'error')
+        return redirect(url_for('profile', user_id=session.get('user_id')))
+
+    pw_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("UPDATE users SET password_hash = ? WHERE username = ?", (pw_hash, username))
+    conn.commit()
+    conn.close()
+
+    log_action('PWD_CHANGED', f'用户 {username} 密码被修改')
+    flash(f'用户 {username} 密码修改成功！', 'success')
+    return redirect(url_for('profile', user_id=session.get('user_id')))
+
+
 # ── 动态页面加载 ─────────────────────────────────────────
 @app.route('/page')
 def dynamic_page():
