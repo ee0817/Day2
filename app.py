@@ -3,7 +3,12 @@ import os
 import re
 import time
 import secrets
+import socket
+import ipaddress
 import sqlite3
+import urllib.request
+import urllib.error
+import urllib.parse
 from functools import wraps
 
 import bcrypt
@@ -421,6 +426,81 @@ def dynamic_page():
         return render_template('index.html', user=user, page_content=page_content)
 
     return render_template('index.html', page_content=page_content)
+
+
+# ── URL 抓取（安全加固版）────────────────────────────────
+def is_safe_url(url):
+    """检查 URL 是否安全：仅允许 http/https，禁止内网地址"""
+    try:
+        parsed = urllib.parse.urlparse(url)
+        # 只允许 http 和 https 协议
+        if parsed.scheme not in ('http', 'https'):
+            return False, '仅支持 http 和 https 协议'
+
+        # 解析目标主机名
+        hostname = parsed.hostname
+        if not hostname:
+            return False, '无效的 URL'
+
+        try:
+            ip = socket.gethostbyname(hostname)
+        except socket.gaierror:
+            return False, '无法解析域名'
+
+        # 判断是否为内网/私有 IP
+        ip_obj = ipaddress.ip_address(ip)
+        if ip_obj.is_private:
+            return False, '不允许访问内网地址'
+        if ip_obj.is_loopback:
+            return False, '不允许访问回环地址'
+        if ip_obj.is_link_local:
+            return False, '不允许访问链路本地地址'
+
+        return True, None
+
+    except Exception:
+        return False, 'URL 格式无效'
+
+
+@app.route('/fetch-url', methods=['POST'])
+def fetch_url():
+    if 'username' not in session:
+        flash('请先登录', 'warning')
+        return redirect(url_for('login'))
+
+    target_url = request.form.get('url', '').strip()
+    if not target_url:
+        flash('请输入 URL', 'error')
+        return render_template('index.html', user=get_user_info(session['username']))
+
+    # URL 安全检查
+    safe, msg = is_safe_url(target_url)
+    if not safe:
+        flash(f'URL 被拒绝：{msg}', 'error')
+        user = get_user_info(session['username'])
+        return render_template('index.html', user=user)
+
+    try:
+        req = urllib.request.Request(target_url, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
+        with urllib.request.urlopen(req, timeout=10) as response:
+            status_code = response.getcode()
+            content = response.read().decode('utf-8', errors='replace')
+            if len(content) > 5000:
+                content = content[:5000] + '\n\n... (truncated to 5000 chars)'
+
+        log_action('FETCH_URL', f'抓取 URL: {target_url} 状态码: {status_code}')
+        result = {'url': target_url, 'status_code': status_code, 'content': content}
+    except urllib.error.HTTPError as e:
+        result = {'url': target_url, 'status_code': e.code, 'content': f'HTTP 错误: {e.code} {e.reason}'}
+    except urllib.error.URLError as e:
+        result = {'url': target_url, 'status_code': 'N/A', 'content': f'URL 错误: {str(e.reason)}'}
+    except Exception as e:
+        result = {'url': target_url, 'status_code': 'N/A', 'content': f'错误: {str(e)}'}
+
+    user = get_user_info(session['username'])
+    return render_template('index.html', user=user, fetch_result=result)
 
 
 # ── 登出确认页 ──────────────────────────────────────────

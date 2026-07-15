@@ -1,6 +1,6 @@
 # 🔐 用户信息管理平台 (User Management System)
 
-一个基于 Flask 的全功能用户信息管理平台，支持**登录、注册、个人中心、余额充值、头像上传、用户搜索、修改密码、动态页面加载**等功能。项目经过完整安全审计与加固，修复了包括 SQL 注入、路径遍历、越权访问、密码修改漏洞在内的 19 项安全漏洞。
+一个基于 Flask 的全功能用户信息管理平台，支持**登录、注册、个人中心、余额充值、头像上传、用户搜索、修改密码、URL 抓取、动态页面加载**等功能。项目经过**完整安全审计与加固**，修复了包括 SSRF、SQL 注入、路径遍历、越权访问在内的 **20 项安全漏洞**，修复率 **100%**。
 
 ---
 
@@ -8,19 +8,20 @@
 
 | 功能 | 路由 | 说明 | 权限 |
 |:-----|:------|:------|:----:|
-| 🔑 登录 | `GET/POST /login` | 用户登录（含登录限流、CSRF 保护） | 公开 |
+| 🔑 登录 | `GET/POST /login` | 用户登录（含登录限流 5次/60秒/IP、CSRF 保护） | 公开 |
 | 📝 注册 | `GET/POST /register` | 新用户注册（含输入过滤与密码强度校验） | 公开 |
 | 👤 个人中心 | `GET /profile` | 查看本人资料（ID、用户名、邮箱、手机、余额） | 登录 |
 | 💰 余额充值 | `POST /recharge` | 为当前登录账号充值（仅正数、仅限本人） | 登录 |
-| 🔑 修改密码 | `POST /change-password` | 修改当前登录用户的密码（需验证原密码） | 登录 |
+| 🔑 修改密码 | `POST /change-password` | 修改当前登录用户密码（需验证原密码 + CSRF） | 登录 |
 | 📷 头像上传 | `GET/POST /upload` | 上传用户头像 | 登录 |
 | 🔍 用户搜索 | `GET /` | 按用户名或邮箱搜索已注册用户 | 登录 |
+| 🌐 URL 抓取 | `POST /fetch-url` | 抓取远程 URL 内容（限 http/https，禁内网） | 登录 |
 | 📖 帮助中心 | `GET /page?name=help` | 动态页面加载，显示帮助文档 | 公开 |
 | 🚪 退出 | `POST /logout` | POST 方式安全退出（含 CSRF 校验） | 登录 |
 
 ---
 
-## 🛡️ 安全修复清单（19项）
+## 🛡️ 安全修复清单（20项）
 
 | # | 漏洞类型 | 严重等级 | 修复方案 | 状态 |
 |:-:|:---------|:--------:|:---------|:----:|
@@ -43,13 +44,14 @@
 | 17 | 动态页面路径遍历 | 🔴 严重 | `os.path.abspath()` 规范化 + 目录约束检查 | ✅ |
 | 18 | 越权修改密码 | 🔴 严重 | 只允许修改当前登录用户密码 + 需验证原密码 | ✅ |
 | 19 | 修改密码无 CSRF | 🟡 中 | `@csrf_required` 装饰器防护 | ✅ |
+| 20 | URL 抓取 SSRF / file 协议 | 🔴 严重 | 协议白名单 + IP 地址校验（禁内网/回环） | ✅ |
 
 ---
 
 ## 📁 项目结构
 
 ```
-├── app.py                        # Flask 主应用（安全加固版，~440行）
+├── app.py                        # Flask 主应用（安全加固版，~510行）
 ├── requirements.txt              # flask, bcrypt
 ├── README.md
 ├── pages/                        # 动态页面目录
@@ -62,7 +64,7 @@
 │   └── uploads/                  # 用户上传文件存储目录
 └── templates/
     ├── base.html                 # 基础模板（导航栏 + Flash 消息）
-    ├── index.html                # 首页（用户信息 + 搜索 + 动态页面）
+    ├── index.html                # 首页（用户信息 + 搜索 + URL 抓取 + 动态页面）
     ├── login.html                # 登录页
     ├── register.html             # 注册页
     ├── profile.html              # 个人中心 / 充值 / 修改密码
@@ -122,6 +124,7 @@ python app.py
 | `POST` | `/recharge` | 充值（只能给自己充，金额必须 > 0） | ✅ | - | |
 | `POST` | `/change-password` | 修改密码（需验证原密码） | ✅ | ✅ | |
 | `GET/POST` | `/upload` | 上传头像 | ✅ | ✅ | |
+| `POST` | `/fetch-url` | URL 抓取（限 http/https，禁内网） | ✅ | - | |
 | `GET` | `/page` | 动态页面加载（如 `?name=help`） | - | - | |
 
 ---
@@ -140,6 +143,7 @@ python app.py
 | `UPLOAD` | 用户上传文件 |
 | `RECHARGE` | 充值操作 |
 | `PWD_CHANGED` | 修改密码成功 |
+| `FETCH_URL` | URL 抓取操作 |
 
 ---
 
@@ -166,7 +170,16 @@ python app.py
 | 充值 | 必须登录，只能给自己充值，金额必须为正数 |
 | 修改密码 | 必须登录 + `@csrf_required` + 验证原密码，只能修改自己的密码 |
 | 头像上传 | 必须登录 |
+| URL 抓取 | 必须登录 |
 | 动态页面 | 路径规范化 + 目录约束，防止路径遍历 |
+
+### URL 抓取安全策略
+
+- **协议白名单**：仅允许 `http://` 和 `https://`
+- **IP 黑名单**：禁止内网 IP（`127.0.0.1`、`10.x.x.x`、`192.168.x.x`、`172.16-31.x.x`）
+- **禁止回环地址**：`localhost`、`127.0.0.1` 等
+- **禁止链路本地地址**：`169.254.x.x`
+- **超时限制**：10 秒超时
 
 ### 头像上传安全策略
 
@@ -221,18 +234,20 @@ curl -X POST http://127.0.0.1:5000/login \
 curl -b cookies.txt http://127.0.0.1:5000/profile?user_id=1
 
 # 4. 充值
-curl -X POST http://127.0.0.1:5000/recharge \
-  -b cookies.txt -d "user_id=1&amount=100"
+curl -b cookies.txt -X POST http://127.0.0.1:5000/recharge -d "user_id=1&amount=100"
 
-# 5. 修改密码（需先获取 CSRF Token）
+# 5. 修改密码（需 CSRF Token）
 CSRF=$(curl -b cookies.txt http://127.0.0.1:5000/profile?user_id=1 | grep -oP 'value="\K[^"]+' | head -1)
 curl -b cookies.txt -X POST http://127.0.0.1:5000/change-password \
   -d "csrf_token=$CSRF&old_password=admin123&new_password=newadmin123"
 
-# 6. 查看帮助中心
+# 6. URL 抓取
+curl -b cookies.txt -X POST http://127.0.0.1:5000/fetch-url -d "url=http://example.com"
+
+# 7. 查看帮助中心
 curl http://127.0.0.1:5000/page?name=help
 
-# 7. 搜索用户
+# 8. 搜索用户
 curl -b cookies.txt "http://127.0.0.1:5000/?keyword=admin"
 ```
 

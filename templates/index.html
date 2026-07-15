@@ -58,6 +58,33 @@
                 {% endif %}
             </div>
 
+            <!-- URL 抓取 -->
+            <div class="search-section">
+                <h3 style="margin-bottom:12px;font-size:16px;color:#333;">🌐 URL 抓取</h3>
+                <form method="POST" action="/fetch-url">
+                    <div class="search-box">
+                        <input type="text" name="url" placeholder="输入 URL（支持 http/https/file）" class="search-input" required>
+                        <button type="submit" class="btn btn-primary" style="width:auto;padding:10px 20px;">抓取</button>
+                    </div>
+                </form>
+
+                {% if fetch_result %}
+                    <div style="margin-top:16px;padding:12px;background:#f8f9fa;border-radius:6px;">
+                        <p style="font-size:13px;color:#555;margin-bottom:6px;">
+                            <strong>目标 URL：</strong>{{ fetch_result.url }}
+                        </p>
+                        <p style="font-size:13px;color:#555;margin-bottom:6px;">
+                            <strong>状态码：</strong>
+                            <span class="badge {% if fetch_result.status_code == 200 %}action-login{% else %}action-login_failed{% endif %}">
+                                {{ fetch_result.status_code }}
+                            </span>
+                        </p>
+                        <p style="font-size:13px;color:#555;margin-bottom:6px;"><strong>响应内容：</strong></p>
+                        <pre style="background:#fff;border:1px solid #ddd;border-radius:4px;padding:10px;font-size:11px;max-height:400px;overflow:auto;white-space:pre-wrap;word-break:break-all;">{{ fetch_result.content }}</pre>
+                    </div>
+                {% endif %}
+            </div>
+
             <div class="action-bar" style="margin-top: 20px;">
                 <form action="/logout" method="POST" style="display: inline;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
