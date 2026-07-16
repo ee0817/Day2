@@ -1,6 +1,6 @@
 # 🔐 用户信息管理平台 (User Management System)
 
-一个基于 Flask 的全功能用户信息管理平台，支持**登录、注册、个人中心、余额充值、头像上传、用户搜索、修改密码、URL 抓取、动态页面加载**等功能。项目经过**完整安全审计与加固**，修复了包括 SSRF、SQL 注入、路径遍历、越权访问在内的 **20 项安全漏洞**，修复率 **100%**。
+一个基于 Flask 的全功能用户信息管理平台，支持**登录、注册、个人中心、余额充值、头像上传、用户搜索、修改密码、URL 抓取、Ping 网络诊断、动态页面加载**等 **10 项功能**。项目经过**完整安全审计与加固**，修复了包括命令注入、SSRF、SQL 注入、路径遍历、越权访问在内的 **21 项安全漏洞**，修复率 **100%**。
 
 ---
 
@@ -16,12 +16,13 @@
 | 📷 头像上传 | `GET/POST /upload` | 上传用户头像 | 登录 |
 | 🔍 用户搜索 | `GET /` | 按用户名或邮箱搜索已注册用户 | 登录 |
 | 🌐 URL 抓取 | `POST /fetch-url` | 抓取远程 URL 内容（限 http/https，禁内网） | 登录 |
+| 📡 Ping 诊断 | `GET/POST /ping` | Ping 网络连通性测试 | 登录 |
 | 📖 帮助中心 | `GET /page?name=help` | 动态页面加载，显示帮助文档 | 公开 |
 | 🚪 退出 | `POST /logout` | POST 方式安全退出（含 CSRF 校验） | 登录 |
 
 ---
 
-## 🛡️ 安全修复清单（20项）
+## 🛡️ 安全修复清单（21项）
 
 | # | 漏洞类型 | 严重等级 | 修复方案 | 状态 |
 |:-:|:---------|:--------:|:---------|:----:|
@@ -45,13 +46,14 @@
 | 18 | 越权修改密码 | 🔴 严重 | 只允许修改当前登录用户密码 + 需验证原密码 | ✅ |
 | 19 | 修改密码无 CSRF | 🟡 中 | `@csrf_required` 装饰器防护 | ✅ |
 | 20 | URL 抓取 SSRF / file 协议 | 🔴 严重 | 协议白名单 + IP 地址校验（禁内网/回环） | ✅ |
+| 21 | Ping 命令注入 | 🔴 严重 | `shlex.quote()` 转义用户输入 | ✅ |
 
 ---
 
 ## 📁 项目结构
 
 ```
-├── app.py                        # Flask 主应用（安全加固版，~510行）
+├── app.py                        # Flask 主应用（安全加固版，~540行）
 ├── requirements.txt              # flask, bcrypt
 ├── README.md
 ├── pages/                        # 动态页面目录
@@ -69,6 +71,7 @@
     ├── register.html             # 注册页
     ├── profile.html              # 个人中心 / 充值 / 修改密码
     ├── upload.html               # 头像上传页
+    ├── ping.html                 # Ping 网络诊断页
     └── logout.html               # 退出确认页
 ```
 
@@ -115,17 +118,18 @@ python app.py
 
 | 方法 | 路径 | 说明 | 登录 | CSRF | 备注 |
 |:----|:------|:------|:----:|:----:|:-----|
-| `GET` | `/` | 首页（已登录显示信息，未登录显示引导） | - | - | |
-| `GET/POST` | `/login` | 登录（含登录限流：5次/60秒/IP） | ❌ | ✅ | |
+| `GET` | `/` | 首页 | - | - | 已登录/未登录双状态 |
+| `GET/POST` | `/login` | 登录 | ❌ | ✅ | 5次/60秒限流 |
 | `POST` | `/logout` | 退出登录 | ✅ | ✅ | |
 | `GET` | `/logout-page` | 退出确认页 | - | - | |
-| `GET/POST` | `/register` | 注册（含密码强度校验 + 输入过滤） | ❌ | ✅ | |
-| `GET` | `/profile` | 个人中心（只能查看自己的资料） | ✅ | - | |
-| `POST` | `/recharge` | 充值（只能给自己充，金额必须 > 0） | ✅ | - | |
-| `POST` | `/change-password` | 修改密码（需验证原密码） | ✅ | ✅ | |
-| `GET/POST` | `/upload` | 上传头像 | ✅ | ✅ | |
-| `POST` | `/fetch-url` | URL 抓取（限 http/https，禁内网） | ✅ | - | |
-| `GET` | `/page` | 动态页面加载（如 `?name=help`） | - | - | |
+| `GET/POST` | `/register` | 注册 | ❌ | ✅ | 密码强度校验 |
+| `GET` | `/profile` | 个人中心 | ✅ | - | 仅限本人 |
+| `POST` | `/recharge` | 充值 | ✅ | - | 仅正数/本人 |
+| `POST` | `/change-password` | 修改密码 | ✅ | ✅ | 需原密码 |
+| `GET/POST` | `/upload` | 上传头像 | ✅ | ✅ | 图片类型校验 |
+| `POST` | `/fetch-url` | URL 抓取 | ✅ | - | 禁 file/内网 |
+| `GET/POST` | `/ping` | Ping 诊断 | ✅ | - | `shlex` 防注入 |
+| `GET` | `/page` | 动态页面 | - | - | 路径约束 |
 
 ---
 
@@ -144,6 +148,7 @@ python app.py
 | `RECHARGE` | 充值操作 |
 | `PWD_CHANGED` | 修改密码成功 |
 | `FETCH_URL` | URL 抓取操作 |
+| `PING` | Ping 诊断操作 |
 
 ---
 
@@ -154,7 +159,7 @@ python app.py
 - 使用 **bcrypt** 加盐哈希存储密码，即使数据库泄露也无法还原
 - 密码强度要求：至少 8 位，包含大小写字母和数字
 - 修改密码必须验证原密码
-- Secret Key 使用 `secrets.token_hex(32)` 随机生成，每次部署不同
+- Secret Key 使用 `secrets.token_hex(32)` 随机生成
 
 ### 登录限流策略
 
@@ -166,19 +171,31 @@ python app.py
 
 | 功能 | 策略 |
 |:-----|:------|
-| 个人中心 | 必须登录，`user_id` 必须与当前 session 匹配 |
-| 充值 | 必须登录，只能给自己充值，金额必须为正数 |
-| 修改密码 | 必须登录 + `@csrf_required` + 验证原密码，只能修改自己的密码 |
+| 个人中心 | 必须登录，`user_id` 与 session 匹配 |
+| 充值 | 必须登录，仅本人 + 正数 |
+| 修改密码 | 必须登录 + CSRF + 原密码，仅本人 |
 | 头像上传 | 必须登录 |
-| URL 抓取 | 必须登录 |
-| 动态页面 | 路径规范化 + 目录约束，防止路径遍历 |
+| URL 抓取 | 必须登录，禁 file 协议 + 禁内网 |
+| Ping 诊断 | 必须登录，`shlex.quote()` 防注入 |
+
+### 命令注入防护
+
+Ping 功能使用 `shlex.quote()` 转义用户输入，防止命令注入：
+
+```python
+# 修复前（危险）：
+cmd = f"ping -c 3 {ip}"           # 输入 127.0.0.1 && whoami → 命令被执行
+
+# 修复后（安全）：
+safe_ip = shlex.quote(ip.strip())
+cmd = f"ping -c 3 {safe_ip}"       # 输入被转义为 '127.0.0.1 && whoami'
+```
 
 ### URL 抓取安全策略
 
 - **协议白名单**：仅允许 `http://` 和 `https://`
-- **IP 黑名单**：禁止内网 IP（`127.0.0.1`、`10.x.x.x`、`192.168.x.x`、`172.16-31.x.x`）
+- **IP 黑名单**：禁止内网 IP（`127.0.0.1`、`10.x.x.x`、`192.168.x.x`）
 - **禁止回环地址**：`localhost`、`127.0.0.1` 等
-- **禁止链路本地地址**：`169.254.x.x`
 - **超时限制**：10 秒超时
 
 ### 头像上传安全策略
@@ -191,10 +208,10 @@ python app.py
 
 ### SQL 注入防护
 
-所有 SQL 查询使用**参数化查询**（Prepared Statement），杜绝字符串拼接：
+所有 SQL 查询使用**参数化查询**（Prepared Statement）：
 
 ```python
-# 安全写法（参数化查询）
+# 安全写法
 sql = "SELECT * FROM users WHERE username LIKE ?"
 c.execute(sql, (f"%{keyword}%",))
 
@@ -244,10 +261,16 @@ curl -b cookies.txt -X POST http://127.0.0.1:5000/change-password \
 # 6. URL 抓取
 curl -b cookies.txt -X POST http://127.0.0.1:5000/fetch-url -d "url=http://example.com"
 
-# 7. 查看帮助中心
+# 7. Ping 测试
+curl -b cookies.txt -X POST http://127.0.0.1:5000/ping -d "ip=127.0.0.1"
+
+# 8. 命令注入测试（应被拦截）
+curl -b cookies.txt -X POST http://127.0.0.1:5000/ping -d "ip=127.0.0.1 && whoami"
+
+# 9. 查看帮助中心
 curl http://127.0.0.1:5000/page?name=help
 
-# 8. 搜索用户
+# 10. 搜索用户
 curl -b cookies.txt "http://127.0.0.1:5000/?keyword=admin"
 ```
 

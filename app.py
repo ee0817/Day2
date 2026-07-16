@@ -5,6 +5,9 @@ import time
 import secrets
 import socket
 import ipaddress
+import shlex
+import subprocess
+import platform
 import sqlite3
 import urllib.request
 import urllib.error
@@ -501,6 +504,34 @@ def fetch_url():
 
     user = get_user_info(session['username'])
     return render_template('index.html', user=user, fetch_result=result)
+
+
+# ── Ping 网络诊断 ───────────────────────────────────────
+@app.route('/ping', methods=['GET', 'POST'])
+def ping():
+    if 'username' not in session:
+        flash('请先登录', 'warning')
+        return redirect(url_for('login'))
+
+    result = None
+    if request.method == 'POST':
+        ip = request.form.get('ip', '')
+        if ip:
+            try:
+                param = '-n' if platform.system().lower() == 'windows' else '-c'
+                safe_ip = shlex.quote(ip.strip())
+                cmd = f"ping {param} 3 {safe_ip}"
+                output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, timeout=30)
+                result = output.decode('utf-8', errors='replace')
+                log_action('PING', f'Ping: {ip}')
+            except subprocess.CalledProcessError as e:
+                result = f'命令执行失败（返回码: {e.returncode}）:\n{e.output.decode("utf-8", errors="replace")}'
+            except subprocess.TimeoutExpired:
+                result = 'Ping 超时（30秒）'
+            except Exception as e:
+                result = f'错误: {str(e)}'
+
+    return render_template('ping.html', result=result)
 
 
 # ── 登出确认页 ──────────────────────────────────────────
