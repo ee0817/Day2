@@ -1,6 +1,7 @@
 """用户信息管理平台 - 安全加固版（含上传功能）"""
 import os
 import re
+import json
 import time
 import secrets
 import socket
@@ -532,6 +533,51 @@ def ping():
                 result = f'错误: {str(e)}'
 
     return render_template('ping.html', result=result)
+
+
+# ── XML 数据导入 ───────────────────────────────────────
+@app.route('/xml-import', methods=['GET', 'POST'])
+def xml_import():
+    if 'username' not in session:
+        flash('请先登录', 'warning')
+        return redirect(url_for('login'))
+
+    result = None
+    error = None
+
+    if request.method == 'POST':
+        xml_data = request.form.get('xml_data', '').strip()
+        if not xml_data:
+            error = '请输入 XML 数据'
+        else:
+            try:
+                # 安全处理：移除 DOCTYPE 声明（防止 XXE 攻击）
+                safe_xml = re.sub(r'<!DOCTYPE\s+\w+\s*\[.*?\]\s*>', '', xml_data, flags=re.DOTALL)
+                safe_xml = safe_xml.replace('<?xml version="1.0"?>', '').replace('<?xml version="1.0" encoding="UTF-8"?>', '')
+                safe_xml = safe_xml.replace('<?xml version="1.0" encoding="utf-8"?>', '')
+
+                # 检查是否包含实体引用（说明可能是 XXE 攻击）
+                if re.search(r'&[a-z]+;', safe_xml):
+                    error = 'XML 中包含不支持的实体引用'
+                else:
+                    # 解析 XML 提取用户数据
+                    import xml.etree.ElementTree as ET
+                    root = ET.fromstring(safe_xml)
+                    users = []
+                    for user_elem in root.findall('.//user'):
+                        name = user_elem.findtext('name', '')
+                        email = user_elem.findtext('email', '')
+                        users.append({'name': name, 'email': email})
+
+                    result = json.dumps({'users': users, 'total': len(users)}, ensure_ascii=False, indent=2)
+                    log_action('XML_IMPORT', f'导入 {len(users)} 个用户')
+
+            except ET.ParseError as e:
+                error = f'XML 解析错误: {str(e)}'
+            except Exception as e:
+                error = f'处理失败: {str(e)}'
+
+    return render_template('xml_import.html', result=result, error=error)
 
 
 # ── 登出确认页 ──────────────────────────────────────────

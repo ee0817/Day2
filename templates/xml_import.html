@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}XML 导入{% endblock %}
+{% block content %}
+    <div class="card">
+        <h2 class="card-title">📄 XML 数据导入</h2>
+        <p style="text-align:center;color:#666;margin-bottom:20px;font-size:13px;">粘贴 XML 数据，自动解析用户信息并返回 JSON</p>
+
+        <form method="POST" action="/xml-import">
+            <div class="form-group">
+                <label for="xml_data">XML 数据</label>
+                <textarea id="xml_data" name="xml_data" rows="12" style="width:100%;padding:12px;border:1.5px solid #ddd;border-radius:6px;font-family:'Consolas','Courier New',monospace;font-size:13px;resize:vertical;" placeholder="粘贴 XML 内容..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">导入</button>
+        </form>
+
+        {% if error %}
+            <div class="flash error" style="margin-top:16px;">{{ error }}</div>
+        {% endif %}
+
+        {% if result %}
+            <div style="margin-top:20px;padding-top:20px;border-top:1px solid #eee;">
+                <h3 style="margin-bottom:12px;font-size:14px;color:#333;">解析结果：</h3>
+                <pre style="background:#f8f9fa;border:1px solid #ddd;border-radius:6px;padding:16px;font-family:'Consolas','Courier New',monospace;font-size:12px;line-height:1.6;max-height:400px;overflow:auto;white-space:pre-wrap;">{{ result }}</pre>
+            </div>
+        {% endif %}
+
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #eee;text-align:center;">
+            <p style="font-size:12px;color:#999;">支持格式：标准 XML 或带 DTD 实体引用的 XML</p>
+            <a href="/" style="color:#667eea;text-decoration:none;font-size:14px;">← 返回首页</a>
+        </div>
+    </div>
+{% endblock %}
